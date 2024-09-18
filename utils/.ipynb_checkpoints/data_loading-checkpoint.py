@@ -86,8 +86,7 @@ class BasicDataset(Dataset):
                 img = img.transpose((2, 0, 1))
 
             if (img > 1).any():
-#                img = img / 255.0
-                img = img/np.max(img)  #Normalize based on the largest value
+                img = img / 255.0
 
             return img
 

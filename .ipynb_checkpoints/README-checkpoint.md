@@ -9,18 +9,17 @@
 
 Customized implementation of the [U-Net](https://arxiv.org/abs/1505.04597) in PyTorch for Kaggle's [Carvana Image Masking Challenge](https://www.kaggle.com/c/carvana-image-masking-challenge) from high definition images.
 
-- [U-Net: Semantic segmentation with PyTorch](#u-net-semantic-segmentation-with-pytorch)
-  - [Quick start](#quick-start)
-    - [Without Docker](#without-docker)
-    - [With Docker](#with-docker)
-  - [Description](#description)
-  - [Usage](#usage)
-    - [Docker](#docker)
-    - [Training](#training)
-    - [Prediction](#prediction)
-  - [Weights \& Biases](#weights--biases)
-  - [Pretrained model](#pretrained-model)
-  - [Data](#data)
+- [Quick start](#quick-start)
+  - [Without Docker](#without-docker)
+  - [With Docker](#with-docker)
+- [Description](#description)
+- [Usage](#usage)
+  - [Docker](#docker)
+  - [Training](#training)
+  - [Prediction](#prediction)
+- [Weights & Biases](#weights--biases)
+- [Pretrained model](#pretrained-model)
+- [Data](#data)
 
 ## Quick start
 
