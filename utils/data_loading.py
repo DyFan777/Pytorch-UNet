@@ -11,7 +11,7 @@ from os.path import splitext, isfile, join
 from pathlib import Path
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
+import h5py
 
 def load_image(filename):
     ext = splitext(filename)[1]
@@ -19,11 +19,21 @@ def load_image(filename):
         return Image.fromarray(np.load(filename))
     elif ext in ['.pt', '.pth']:
         return Image.fromarray(torch.load(filename).numpy())
+    elif ext == '.mat':
+        mat_file = h5py.File(filename, 'r')
+        keys = list(mat_file.keys())
+        if not keys:
+            raise ValueError("No datasets found in the .mat file.")
+        dataset_name = keys[0]
+        imgfile = Image.fromarray(mat_file[dataset_name][:])  
+        return imgfile
     else:
         return Image.open(filename)
 
 
 def unique_mask_values(idx, mask_dir, mask_suffix):
+    #print(idx)
+    #print(mask_dir.glob(idx + mask_suffix + '.*'))
     mask_file = list(mask_dir.glob(idx + mask_suffix + '.*'))[0]
     mask = np.asarray(load_image(mask_file))
     if mask.ndim == 2:
@@ -49,6 +59,7 @@ class BasicDataset(Dataset):
 
         logging.info(f'Creating dataset with {len(self.ids)} examples')
         logging.info('Scanning mask files to determine unique values')
+        # logging.info(self.ids)
         with Pool() as p:
             unique = list(tqdm(
                 p.imap(partial(unique_mask_values, mask_dir=self.mask_dir, mask_suffix=self.mask_suffix), self.ids),
@@ -87,7 +98,7 @@ class BasicDataset(Dataset):
 
             if (img > 1).any():
 #                img = img / 255.0
-                img = img/np.max(img)  #Normalize based on the largest value
+                img = (img - np.min(img) )/np.max(img)  #Normalize based on the largest value 
 
             return img
 
@@ -116,3 +127,4 @@ class BasicDataset(Dataset):
 class CarvanaDataset(BasicDataset):
     def __init__(self, images_dir, mask_dir, scale=1):
         super().__init__(images_dir, mask_dir, scale, mask_suffix='_mask')
+        #super().__init__(images_dir, mask_dir, scale, mask_suffix='')  # Change: I don't need suffix here. 
