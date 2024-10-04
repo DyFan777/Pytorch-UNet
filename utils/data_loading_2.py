@@ -60,13 +60,15 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
         raise ValueError(f'Loaded masks should have 2 or 3 dimensions, found {mask.ndim}')
 
 
-class BasicDataset(Dataset):
-    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0, mask_suffix: str = ''):
+class BasicDataset_2(Dataset):
+    def __init__(self, images_dir: str, mask_dir: str, D_dir: str, scale: float = 1.0, mask_suffix: str = '', D_suffix: str = ''):
         self.images_dir = Path(images_dir)
         self.mask_dir = Path(mask_dir)
+        self.D_dir = Path(D_dir)
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
         self.scale = scale
         self.mask_suffix = mask_suffix
+        self.D_suffix = D_suffix
 
         self.ids = [splitext(file)[0] for file in listdir(images_dir) if isfile(join(images_dir, file)) and not file.startswith('.')]
         if not self.ids:
@@ -88,14 +90,15 @@ class BasicDataset(Dataset):
         return len(self.ids)
 
     @staticmethod
-    def preprocess(mask_values, pil_img, scale, is_mask):
+    def preprocess(mask_values, pil_img, scale, img_type):
+        #type 1 = mask, type 2: D, type 3: img
         w, h = pil_img.size
         newW, newH = int(scale * w), int(scale * h)
         assert newW > 0 and newH > 0, 'Scale is too small, resized images would have no pixel'
-        pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC)
+        pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if img_type == 1 else Image.BICUBIC)
         img = np.asarray(pil_img)
 
-        if is_mask:
+        if img_type == 1:
             mask = np.zeros((newH, newW), dtype=np.int64)
             for i, v in enumerate(mask_values):
                 if img.ndim == 2:
@@ -104,8 +107,9 @@ class BasicDataset(Dataset):
                     mask[(img == v).all(-1)] = i
 
             return mask
-
-        else:
+        elif img_type == 2:
+            return img
+        elif img_type == 3:
             if img.ndim == 2:
                 img = img[np.newaxis, ...]
             else:
@@ -121,25 +125,31 @@ class BasicDataset(Dataset):
         name = self.ids[idx]
         mask_file = list(self.mask_dir.glob(name + self.mask_suffix + '.*'))
         img_file = list(self.images_dir.glob(name + '.*'))
+        D_file = list(self.D_dir.glob(name + self.D_suffix + '.*'))
 
         assert len(img_file) == 1, f'Either no image or multiple images found for the ID {name}: {img_file}'
         assert len(mask_file) == 1, f'Either no mask or multiple masks found for the ID {name}: {mask_file}'
+        assert len(D_file) == 1, f'Either no D_map or multiple D_map found for the ID {name}: {D_file}'
         mask = load_image(mask_file[0])
         img = load_image(img_file[0])
+        D = load_image(D_file[0])
 
         assert img.size == mask.size, \
             f'Image and mask {name} should be the same size, but are {img.size} and {mask.size}'
 
-        img = self.preprocess(self.mask_values, img, self.scale, is_mask=False)
-        mask = self.preprocess(self.mask_values, mask, self.scale, is_mask=True)
+        img = self.preprocess(self.mask_values, img, self.scale, img_type = 3)
+        mask = self.preprocess(self.mask_values, mask, self.scale, img_type = 1)
+        D = self.preprocess(self.mask_values, D ,self.scale, img_type = 2 )
+
 
         return {
             'image': torch.as_tensor(img.copy()).float().contiguous(),
-            'mask': torch.as_tensor(mask.copy()).long().contiguous()
+            'mask': torch.as_tensor(mask.copy()).long().contiguous(),
+            'D': torch.as_tensor(D.copy()).float().contiguous()
         }
 
 
-class CarvanaDataset(BasicDataset):
-    def __init__(self, images_dir, mask_dir, scale=1):
-        super().__init__(images_dir, mask_dir, scale, mask_suffix='_D')
-        #super().__init__(images_dir, D_dir, scale, mask_suffix='')  # Change: I don't need suffix here. 
+class CarvanaDataset_2(BasicDataset_2):
+    def __init__(self, images_dir, mask_dir, D_dir, scale=1):
+        super().__init__(images_dir, mask_dir, D_dir, scale, mask_suffix='_mask', D_suffix = '_D')
+
