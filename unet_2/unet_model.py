@@ -25,7 +25,8 @@ class UNet_2(nn.Module):
         self.outc_mask = nn.Conv2d(64, 1, kernel_size=1)  # Single channel output for mask
         
         # Define the second output head (for spatial diffusion map)
-        self.outc_diffusion = nn.Conv2d(64, 1, kernel_size=1)  # Single channel output for diffusion map        
+        self.outc_diffusion = nn.Conv2d(64, 1, kernel_size=1)  # Single channel output for diffusion map     
+
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -41,6 +42,8 @@ class UNet_2(nn.Module):
         # Two separate outputs
         mask_out = self.outc_mask(x)          # Output for mask
         diffusion_out = self.outc_diffusion(x)  # Output for diffusion map
+
+        #mask_pred_binary = (mask_out > 0.5).float()
 
         return mask_out, diffusion_out
     
