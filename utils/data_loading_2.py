@@ -61,7 +61,7 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
 
 
 class BasicDataset_2(Dataset):
-    def __init__(self, images_dir: str, mask_dir: str, D_dir: str, scale: float = 1.0, mask_suffix: str = '', D_suffix: str = ''):
+    def __init__(self, images_dir: str, mask_dir: str, D_dir: str,D_range: list, scale: float = 1.0, mask_suffix: str = '', D_suffix: str = '' ):
         self.images_dir = Path(images_dir)
         self.mask_dir = Path(mask_dir)
         self.D_dir = Path(D_dir)
@@ -69,6 +69,7 @@ class BasicDataset_2(Dataset):
         self.scale = scale
         self.mask_suffix = mask_suffix
         self.D_suffix = D_suffix
+        self.D_range = D_range
 
         self.ids = [splitext(file)[0] for file in listdir(images_dir) if isfile(join(images_dir, file)) and not file.startswith('.')]
         if not self.ids:
@@ -90,12 +91,12 @@ class BasicDataset_2(Dataset):
         return len(self.ids)
 
     @staticmethod
-    def preprocess(mask_values, pil_img, scale, img_type):
+    def preprocess(mask_values, pil_img, scale, D_range, img_type):
         #type 1 = mask, type 2: D, type 3: img
         w, h = pil_img.size
         newW, newH = int(scale * w), int(scale * h)
         assert newW > 0 and newH > 0, 'Scale is too small, resized images would have no pixel'
-        pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if img_type == 1 else Image.BICUBIC)
+        pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if img_type == 1 or img_type ==2 else Image.BICUBIC)
         img = np.asarray(pil_img)
 
         if img_type == 1:
@@ -108,6 +109,7 @@ class BasicDataset_2(Dataset):
 
             return mask
         elif img_type == 2:
+            img = (img - D_range[0])/(D_range[1] - D_range[0])
             return img
         elif img_type == 3:
             if img.ndim == 2:
@@ -137,9 +139,9 @@ class BasicDataset_2(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {name} should be the same size, but are {img.size} and {mask.size}'
 
-        img = self.preprocess(self.mask_values, img, self.scale, img_type = 3)
-        mask = self.preprocess(self.mask_values, mask, self.scale, img_type = 1)
-        D = self.preprocess(self.mask_values, D ,self.scale, img_type = 2 )
+        img = self.preprocess(self.mask_values, img, self.scale,  self.D_range, img_type = 3)
+        mask = self.preprocess(self.mask_values, mask, self.scale,  self.D_range, img_type = 1)
+        D = self.preprocess(self.mask_values, D ,self.scale,  self.D_range, img_type = 2 )
 
 
         return {
@@ -150,6 +152,6 @@ class BasicDataset_2(Dataset):
 
 
 class CarvanaDataset_2(BasicDataset_2):
-    def __init__(self, images_dir, mask_dir, D_dir, scale=1):
-        super().__init__(images_dir, mask_dir, D_dir, scale, mask_suffix='_mask', D_suffix = '_D')
+    def __init__(self, images_dir, mask_dir, D_dir, D_range, scale=1):
+        super().__init__(images_dir, mask_dir, D_dir, D_range, scale, mask_suffix='_mask', D_suffix = '_D')
 
