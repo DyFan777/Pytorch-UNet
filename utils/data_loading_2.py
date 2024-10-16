@@ -23,16 +23,20 @@ def load_image(filename):
     elif ext == '.mat':
         try:
             # Try to open with h5py for MATLAB version 7.3+
+            
             mat_file = h5py.File(filename, 'r')
             keys = list(mat_file.keys())
             if not keys:
                 raise ValueError("No datasets found in the .mat file.")
             dataset_name = keys[0]
-            imgfile = Image.fromarray(mat_file[dataset_name][:])  
+            file = mat_file[dataset_name][:].T
+            if len(file.shape) == 3:
+                file = (file * 255 ).astype(np.uint8)
+            imgfile = Image.fromarray(file)  
             return imgfile
         except OSError:
             # If it's not an HDF5 file, fall back to scipy for older versions
-            print(f"{filename} is not an HDF5 file, trying scipy.io.loadmat()")
+            # print(f"{filename} is not an HDF5 file, trying scipy.io.loadmat()")
             mat_file = scipy.io.loadmat(filename)
             keys = list(mat_file.keys())
             # Skip MATLAB-specific meta fields like __header__, __version__, __globals__
