@@ -31,7 +31,8 @@ def calculate_loss( mask_pred, diffusion_pred, mask_true,diffusion_true ):
         results_true_nonzero = torch.stack([x[0] for x in result_combine]).to(mask_pred.device)
         results_pred_nonzero = torch.stack([x[1] for x in result_combine]).to(mask_pred.device)
 
-        loss_diffusion = F.mse_loss(results_true_nonzero, results_pred_nonzero)
+        # loss_diffusion = F.mse_loss(results_true_nonzero, results_pred_nonzero)
+        loss_diffusion = F.l1_loss(results_true_nonzero, results_pred_nonzero)
 
     return loss_mask, loss_diffusion
 
